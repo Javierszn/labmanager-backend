@@ -11,6 +11,16 @@ const obtenerSanciones = async (req, res) => {
     }
 };
 
+// Obtener sanciones solo del usuario logueado (para su perfil)
+const obtenerMisSanciones = async (req, res) => {
+    try {
+        const sanciones = await Sancion.find({ usuario: req.userActive._id }).sort({ createdAt: -1 });
+        res.json({ ok: true, sanciones });
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: 'Error al obtener tu historial de sanciones' });
+    }
+};
+
 // Aplicar una nueva sanción a un alumno
 const crearSancion = async (req, res) => {
     try {
@@ -18,7 +28,7 @@ const crearSancion = async (req, res) => {
         const nuevaSancion = new Sancion({ usuario, motivo });
         await nuevaSancion.save();
 
-        // 🟢 Al mismo tiempo que creamos la sanción, bloqueamos al usuario
+        // Al mismo tiempo que creamos la sanción, bloqueamos al usuario
         await Usuario.findByIdAndUpdate(usuario, { estado: 'Sancionado' });
 
         res.status(201).json({ ok: true, sancion: nuevaSancion });
@@ -33,7 +43,7 @@ const resolverSancion = async (req, res) => {
         const sancionId = req.params.id;
         const sancion = await Sancion.findByIdAndUpdate(sancionId, { estado: 'Resuelta' }, { new: true });
 
-        // 🟢 Al resolver la sanción, le devolvemos el acceso al usuario
+        // Al resolver la sanción, le devolvemos el acceso al usuario
         await Usuario.findByIdAndUpdate(sancion.usuario, { estado: 'Activo' });
 
         res.json({ ok: true, sancion });
@@ -42,7 +52,7 @@ const resolverSancion = async (req, res) => {
     }
 };
 
-// Eliminar el registro por completo (Opcional para el CRUD)
+// Eliminar el registro por completo
 const eliminarSancion = async (req, res) => {
     try {
         await Sancion.findByIdAndDelete(req.params.id);
@@ -52,4 +62,10 @@ const eliminarSancion = async (req, res) => {
     }
 };
 
-module.exports = { obtenerSanciones, crearSancion, resolverSancion, eliminarSancion };
+module.exports = { 
+    obtenerSanciones, 
+    obtenerMisSanciones, 
+    crearSancion, 
+    resolverSancion, 
+    eliminarSancion 
+};

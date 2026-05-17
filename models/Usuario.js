@@ -19,7 +19,6 @@ const UsuarioSchema = new Schema({
         enum: ['alumno', 'admin'],
         default: 'alumno'
     },
-    // --- ESTOS SON LOS 2 CAMPOS NUEVOS ---
     matricula: {
         type: String,
         default: '000000'
@@ -28,7 +27,12 @@ const UsuarioSchema = new Schema({
         type: String,
         enum: ['Activo', 'Sancionado'],
         default: 'Activo'
-    }
+    },
+    // --- CAMPOS NUEVOS PARA EL PERFIL ---
+    telefono: { type: String, default: '' },
+    institucion: { type: String, default: 'UASLP' },
+    facultad: { type: String, default: 'Facultad de Ingeniería' },
+    foto: { type: String, default: 'https://placehold.co/128x128/003b5c/ffffff?text=Perfil' }
 }, {
     timestamps: true
 });
