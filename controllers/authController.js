@@ -14,7 +14,6 @@ const registrarUsuario = async (req, res) => {
     try {
         const { nombre, correo, password, matricula } = req.body;
 
-        // 1. Verificar si el correo ya está registrado
         const existeUsuario = await Usuario.findOne({ correo });
         if (existeUsuario) {
             return res.status(400).json({
@@ -23,17 +22,14 @@ const registrarUsuario = async (req, res) => {
             });
         }
 
-        // 2. Crear la instancia del usuario (por defecto será rol 'alumno')
+        // Se guarda el estado por defecto 'Activo' desde el modelo
         const usuario = new Usuario({ nombre, correo, password, matricula });
 
-        // 3. Encriptar la contraseña
         const salt = bcrypt.genSaltSync(10);
         usuario.password = bcrypt.hashSync(password, salt);
 
-        // 4. Guardar en la base de datos
         await usuario.save();
 
-        // 5. Generar su JWT para que quede logueado de inmediato
         const token = generarJWT(usuario.id, usuario.rol);
 
         res.status(201).json({
@@ -56,43 +52,76 @@ const loginUsuario = async (req, res) => {
     try {
         const { correo, password } = req.body;
 
-        // 1. Verificar si el correo existe
         const usuario = await Usuario.findOne({ correo });
         if (!usuario) {
-            return res.status(400).json({
-                ok: false,
-                msg: 'Credenciales no válidas - correo'
-            });
+            return res.status(400).json({ ok: false, msg: 'Credenciales no válidas - correo' });
         }
 
-        // 2. Confirmar si la contraseña hace match con el hash
         const validPassword = bcrypt.compareSync(password, usuario.password);
         if (!validPassword) {
-            return res.status(400).json({
-                ok: false,
-                msg: 'Credenciales no válidas - password'
-            });
+            return res.status(400).json({ ok: false, msg: 'Credenciales no válidas - password' });
         }
 
-        // 3. Generar el JWT
         const token = generarJWT(usuario.id, usuario.rol);
+
+        res.json({ ok: true, usuario, token });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error inesperado en el login.' });
+    }
+};
+
+// ==========================================
+// NUEVAS FUNCIONES PARA EL ADMINISTRADOR
+// ==========================================
+
+// TRAER LA LISTA DE ALUMNOS
+const obtenerAlumnos = async (req, res) => {
+    try {
+        // Buscamos solo a los que tienen rol de 'alumno' y ocultamos la contraseña en la respuesta
+        const alumnos = await Usuario.find({ rol: 'alumno' }).select('-password');
+        
+        res.json({
+            ok: true,
+            alumnos
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al obtener lista de alumnos' });
+    }
+};
+
+// BLOQUEAR / DESBLOQUEAR ALUMNO
+const actualizarEstado = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado } = req.body; // Recibiremos 'Activo' o 'Sancionado'
+
+        const usuarioActualizado = await Usuario.findByIdAndUpdate(
+            id,
+            { estado },
+            { new: true } // Para que nos devuelva el registro ya actualizado
+        ).select('-password');
+
+        if (!usuarioActualizado) {
+            return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+        }
 
         res.json({
             ok: true,
-            usuario,
-            token
+            usuario: usuarioActualizado
         });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Error inesperado en el login. Hable con el administrador'
-        });
+        res.status(500).json({ ok: false, msg: 'Error al actualizar el estado del usuario' });
     }
 };
 
 module.exports = {
     registrarUsuario,
-    loginUsuario
+    loginUsuario,
+    obtenerAlumnos,
+    actualizarEstado
 };

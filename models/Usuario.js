@@ -18,6 +18,16 @@ const UsuarioSchema = new Schema({
         type: String,
         enum: ['alumno', 'admin'],
         default: 'alumno'
+    },
+    // --- ESTOS SON LOS 2 CAMPOS NUEVOS ---
+    matricula: {
+        type: String,
+        default: '000000'
+    },
+    estado: {
+        type: String,
+        enum: ['Activo', 'Sancionado'],
+        default: 'Activo'
     }
 }, {
     timestamps: true
