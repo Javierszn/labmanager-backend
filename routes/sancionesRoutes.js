@@ -1,18 +1,13 @@
 const { Router } = require('express');
-const { 
-    crearSancion, 
-    obtenerSanciones, 
-    actualizarSancion, 
-    eliminarSancion 
-} = require('../controllers/sancionesController');
-const { validarJWT, verifyAdminRole } = require('../middlewares/validarJWT');
+const { obtenerSanciones, crearSancion, resolverSancion, eliminarSancion } = require('../controllers/sancionesController');
+const { validarJWT } = require('../middlewares/validarJWT'); 
 
 const router = Router();
 
-// Aplicamos los middlewares de seguridad para validar token y rol de administrador
-router.post('/', [validarJWT, verifyAdminRole], crearSancion);
-router.get('/', [validarJWT, verifyAdminRole], obtenerSanciones);
-router.put('/:id', [validarJWT, verifyAdminRole], actualizarSancion);
-router.delete('/:id', [validarJWT, verifyAdminRole], eliminarSancion);
+// Todas las rutas protegidas para el administrador
+router.get('/', validarJWT, obtenerSanciones);
+router.post('/', validarJWT, crearSancion);
+router.put('/:id/resolver', validarJWT, resolverSancion);
+router.delete('/:id', validarJWT, eliminarSancion);
 
 module.exports = router;

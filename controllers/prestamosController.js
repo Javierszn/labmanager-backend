@@ -4,8 +4,24 @@ const Equipo = require('../models/Equipo');
 // 1. Crear una solicitud de préstamo (Alumno)
 const crearPrestamo = async (req, res) => {
     try {
+        // --- CANDADO DE SEGURIDAD PARA INVITADOS ---
+        if (!req.userActive) {
+            return res.status(401).json({
+                ok: false,
+                msg: '🔒 Acción denegada: Debes iniciar sesión para poder realizar solicitudes de materiales.'
+            });
+        }
+
+        // --- VALIDACIÓN DE SANCIONES ---
+        if (req.userActive.estado === 'Sancionado') {
+            return res.status(403).json({
+                ok: false,
+                msg: '⚠️ No puedes solicitar material porque tu cuenta está Sancionada. Acude con el laboratorista.'
+            });
+        }
+
         const { equipos, fechaSalida, fechaLimite } = req.body;
-        const usuarioId = req.userActive._id; // Obtenido del middleware validarJWT
+        const usuarioId = req.userActive._id; // Ahora es 100% seguro leerlo
 
         // Validar stock disponible de cada equipo antes de confirmar
         for (let item of equipos) {
@@ -31,7 +47,7 @@ const crearPrestamo = async (req, res) => {
         // Restar temporalmente el stock disponible
         for (let item of equipos) {
             await Equipo.findByIdAndUpdate(item.equipo, {
-                $inc: { stockDisponible: -item.cantidad } // Resta la cantidad solicitada
+                $inc: { stockDisponible: -item.cantidad }
             });
         }
 
@@ -89,7 +105,7 @@ const actualizarEstadoPrestamo = async (req, res) => {
     }
 };
 
-// 5. NUEVO: Cancelar préstamo (Alumno)
+// 5. Cancelar préstamo (Alumno)
 const cancelarPrestamo = async (req, res) => {
     try {
         const prestamoId = req.params.id;
@@ -103,14 +119,12 @@ const cancelarPrestamo = async (req, res) => {
             return res.status(400).json({ ok: false, msg: 'Solo se pueden cancelar préstamos pendientes' });
         }
 
-        // Cambiamos el estado a Cancelado
         prestamo.estado = 'Cancelado';
         await prestamo.save();
 
-        // Le regresamos el stock a los equipos en el catálogo
         for (let item of prestamo.equipos) {
             await Equipo.findByIdAndUpdate(item.equipo, {
-                $inc: { stockDisponible: item.cantidad } // Suma la cantidad devuelta
+                $inc: { stockDisponible: item.cantidad }
             });
         }
 
@@ -126,5 +140,5 @@ module.exports = {
     obtenerTodosPrestamos,
     obtenerPrestamosUsuario,
     actualizarEstadoPrestamo,
-    cancelarPrestamo // <-- Exportamos la nueva función
+    cancelarPrestamo
 };

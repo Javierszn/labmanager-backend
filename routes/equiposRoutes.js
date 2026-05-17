@@ -4,10 +4,10 @@ const { validarJWT, verifyAdminRole } = require('../middlewares/validarJWT');
 
 const router = Router();
 
-// Todos pueden ver los equipos, pero deben estar logueados
-router.get('/', validarJWT, obtenerEquipos);
+// RUTA PÚBLICA: Todos pueden ver los equipos (logueados y visitantes)
+router.get('/', obtenerEquipos);
 
-// Solo el Administrador puede realizar cambios (CRUD)
+// RUTAS PRIVADAS: Solo el Administrador puede realizar cambios (CRUD)
 router.post('/', [validarJWT, verifyAdminRole], crearEquipo);
 router.put('/:id', [validarJWT, verifyAdminRole], actualizarEquipo);
 router.delete('/:id', [validarJWT, verifyAdminRole], eliminarEquipo);

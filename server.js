@@ -24,6 +24,8 @@ app.use('/api/equipos', require('./routes/equiposRoutes'));
 app.use('/api/categorias', require('./routes/categoriasRoutes'));
 app.use('/api/prestamos', require('./routes/prestamosRoutes'));
 app.use('/api/sanciones', require('./routes/sancionesRoutes'));
+app.use('/api/categorias', require('./routes/categoriasRoutes'));
+app.use('/api/sanciones', require('./routes/sancionesRoutes'));
 
 // Ruta base de prueba
 app.get('/api', (req, res) => {

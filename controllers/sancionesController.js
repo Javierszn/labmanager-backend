@@ -1,66 +1,55 @@
 const Sancion = require('../models/Sancion');
+const Usuario = require('../models/Usuario');
 
-// 1. Creación: Registrar una nueva sanción (Solo Admin)
-const crearSancion = async (req, res) => {
-    const sancion = new Sancion(req.body);
-    try {
-        const sancionGuardada = await sancion.save();
-        res.status(201).json({
-            ok: true,
-            sancion: sancionGuardada
-        });
-    } catch (error) {
-        res.status(500).json({ ok: false, msg: 'Error al crear la sanción' });
-    }
-};
-
-// 2. Lectura: Obtener la lista de sanciones
+// Obtener todas las sanciones (para el panel del administrador)
 const obtenerSanciones = async (req, res) => {
     try {
-        const sanciones = await Sancion.find()
-            .populate('usuario', 'nombre correo matricula')
-            .populate('prestamo');
+        const sanciones = await Sancion.find().populate('usuario', 'nombre matricula correo');
         res.json({ ok: true, sanciones });
     } catch (error) {
-        res.status(500).json({ ok: false, msg: 'Error al obtener las sanciones' });
+        res.status(500).json({ ok: false, msg: 'Error al obtener sanciones' });
     }
 };
 
-// 3. Actualización: Modificar una sanción (ej. marcarla como inactiva/resuelta)
-const actualizarSancion = async (req, res) => {
-    const sancionId = req.params.id;
+// Aplicar una nueva sanción a un alumno
+const crearSancion = async (req, res) => {
     try {
-        const sancionActualizada = await Sancion.findByIdAndUpdate(
-            sancionId, 
-            req.body, 
-            { new: true }
-        );
-        if (!sancionActualizada) {
-            return res.status(404).json({ ok: false, msg: 'Sanción no encontrada' });
-        }
-        res.json({ ok: true, sancion: sancionActualizada });
+        const { usuario, motivo } = req.body;
+        const nuevaSancion = new Sancion({ usuario, motivo });
+        await nuevaSancion.save();
+
+        // 🟢 Al mismo tiempo que creamos la sanción, bloqueamos al usuario
+        await Usuario.findByIdAndUpdate(usuario, { estado: 'Sancionado' });
+
+        res.status(201).json({ ok: true, sancion: nuevaSancion });
     } catch (error) {
-        res.status(500).json({ ok: false, msg: 'Error al actualizar la sanción' });
+        res.status(500).json({ ok: false, msg: 'Error al aplicar sanción' });
     }
 };
 
-// 4. Eliminación: Borrar un registro de sanción
+// Resolver (Quitar) una sanción
+const resolverSancion = async (req, res) => {
+    try {
+        const sancionId = req.params.id;
+        const sancion = await Sancion.findByIdAndUpdate(sancionId, { estado: 'Resuelta' }, { new: true });
+
+        // 🟢 Al resolver la sanción, le devolvemos el acceso al usuario
+        await Usuario.findByIdAndUpdate(sancion.usuario, { estado: 'Activo' });
+
+        res.json({ ok: true, sancion });
+    } catch (error) {
+        res.status(500).json({ ok: false, msg: 'Error al resolver sanción' });
+    }
+};
+
+// Eliminar el registro por completo (Opcional para el CRUD)
 const eliminarSancion = async (req, res) => {
-    const sancionId = req.params.id;
     try {
-        const sancionEliminada = await Sancion.findByIdAndDelete(sancionId);
-        if (!sancionEliminada) {
-            return res.status(404).json({ ok: false, msg: 'Sanción no encontrada' });
-        }
-        res.json({ ok: true, msg: 'Sanción eliminada correctamente' });
+        await Sancion.findByIdAndDelete(req.params.id);
+        res.json({ ok: true, msg: 'Sanción eliminada del historial' });
     } catch (error) {
-        res.status(500).json({ ok: false, msg: 'Error al eliminar la sanción' });
+        res.status(500).json({ ok: false, msg: 'Error al eliminar' });
     }
 };
 
-module.exports = {
-    crearSancion,
-    obtenerSanciones,
-    actualizarSancion,
-    eliminarSancion
-};
+module.exports = { obtenerSanciones, crearSancion, resolverSancion, eliminarSancion };

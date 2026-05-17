@@ -4,23 +4,17 @@ const SancionSchema = new Schema({
     usuario: {
         type: Schema.Types.ObjectId,
         ref: 'Usuario',
-        required: [true, 'El usuario sancionado es obligatorio']
-    },
-    prestamo: {
-        type: Schema.Types.ObjectId,
-        ref: 'Prestamo',
-        required: false
+        required: [true, 'El usuario es obligatorio']
     },
     motivo: {
         type: String,
         required: [true, 'El motivo de la sanción es obligatorio']
     },
-    activa: {
-        type: Boolean,
-        default: true
+    estado: {
+        type: String,
+        enum: ['Activa', 'Resuelta'],
+        default: 'Activa'
     }
-}, {
-    timestamps: true
-});
+}, { timestamps: true });
 
 module.exports = model('Sancion', SancionSchema);
