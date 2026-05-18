@@ -139,18 +139,21 @@ const solicitarRecuperacion = async (req, res) => {
         usuario.resetPasswordExpires = Date.now() + 1800000; 
         await usuario.save();
 
-        // --- CONFIGURACIÓN REFORZADA DE NODEMAILER ---
+        // --- CONFIGURACIÓN OPTIMIZADA PARA PRODUCCIÓN (PORT 587) ---
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, 
+            port: 587,
+            secure: false, // false para puerto 587 (STARTTLS)
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
+            },
+            tls: {
+                rejectUnauthorized: false // Evita que Render rechace la conexión por temas de certificados TLS
             }
         });
 
-        // Forzamos la conexión para atrapar el error si la contraseña de aplicación falla
+        // Verificación de conexión inmediata
         await transporter.verify();
 
         const mailOptions = {
@@ -174,7 +177,7 @@ const solicitarRecuperacion = async (req, res) => {
         res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
     } catch (error) {
-        console.error("❌ Error de Nodemailer:", error);
+        console.error("❌ Error detallado de Nodemailer:", error);
         res.status(500).json({ ok: false, msg: 'Hubo un error al enviar el correo' });
     }
 };
