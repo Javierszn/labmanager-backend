@@ -139,75 +139,46 @@ const solicitarRecuperacion = async (req, res) => {
         usuario.resetPasswordExpires = Date.now() + 1800000; 
         await usuario.save();
 
-        // --- CONFIGURACIÓN OPTIMIZADA PARA PRODUCCIÓN (PORT 587) ---
+        const resetLink = `https://labmanager-front-fjebuqz7y-javiergariv-2192s-projects.vercel.app/login?token=${token}`;
+
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
-            secure: false, // false para puerto 587 (STARTTLS)
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             },
-            tls: {
-                rejectUnauthorized: false // Evita que Render rechace la conexión por temas de certificados TLS
-            }
+            tls: { rejectUnauthorized: false }
         });
 
-        // Verificación de conexión inmediata
-        await transporter.verify();
+        try {
+            // Intentamos enviarlo
+            await transporter.verify();
+            const mailOptions = {
+                from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
+                to: usuario.correo,
+                subject: 'Recuperación de Contraseña - LabManager UASLP',
+                html: `<p>Hola. Haz clic aquí para recuperar: <a href="${resetLink}">Restablecer Contraseña</a></p>`
+            };
+            await transporter.sendMail(mailOptions);
+            res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
-        const mailOptions = {
-            from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
-            to: usuario.correo,
-            subject: 'Recuperación de Contraseña - LabManager UASLP',
-            html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-                    <h2 style="color: #004a99; text-align: center;">LabManager UASLP</h2>
-                    <p style="font-size: 16px;">Hola <strong>${usuario.nombre}</strong>,</p>
-                    <p style="font-size: 16px;">Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón de abajo para crear una nueva:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="https://labmanager-front-fjebuqz7y-javiergariv-2192s-projects.vercel.app/login?token=${token}" style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Restablecer Contraseña</a>
-                    </div>
-                    <p style="font-size: 14px; color: #555;">Este enlace es seguro y expirará en 30 minutos.</p>
-                </div>
-            `
-        };
-
-        await transporter.sendMail(mailOptions);
-        res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
-
-    } catch (error) {
-        console.error("❌ Error detallado de Nodemailer:", error);
-        res.status(500).json({ ok: false, msg: 'Hubo un error al enviar el correo' });
-    }
-};
-
-const resetearPasswordOlvidada = async (req, res) => {
-    try {
-        const { token } = req.params;
-        const { password } = req.body;
-
-        const usuario = await Usuario.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
-
-        if (!usuario) {
-            return res.status(400).json({ ok: false, msg: 'El enlace de recuperación es inválido o ha expirado.' });
+        } catch (emailError) {
+            // SI RENDER LO BLOQUEA, ENRAMOS AQUÍ (MODO DEMO)
+            console.log("❌ Render bloqueó el correo. Activando Modo Demo...");
+            console.log("Link generado:", resetLink);
+            
+            res.json({ 
+                ok: true, 
+                msg: 'Modo Demo (Render Gratuito): Abriendo ventana de recuperación...',
+                linkDemo: resetLink 
+            });
         }
 
-        const salt = bcrypt.genSaltSync(10);
-        usuario.password = bcrypt.hashSync(password, salt);
-        
-        usuario.resetPasswordToken = undefined;
-        usuario.resetPasswordExpires = undefined;
-
-        await usuario.save();
-
-        res.json({ ok: true, msg: 'Tu contraseña ha sido restablecida exitosamente.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ ok: false, msg: 'Error al restablecer contraseña' });
+        res.status(500).json({ ok: false, msg: 'Hubo un error en el servidor' });
     }
 };
 
