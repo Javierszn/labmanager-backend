@@ -28,18 +28,20 @@ const UsuarioSchema = new Schema({
         enum: ['Activo', 'Sancionado'],
         default: 'Activo'
     },
-    // --- CAMPOS NUEVOS PARA EL PERFIL ---
     telefono: { type: String, default: '' },
     institucion: { type: String, default: 'UASLP' },
     facultad: { type: String, default: 'Facultad de Ingeniería' },
-    foto: { type: String, default: 'https://placehold.co/128x128/003b5c/ffffff?text=Perfil' }
+    foto: { type: String, default: 'https://placehold.co/128x128/003b5c/ffffff?text=Perfil' },
+    
+    // --- CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA ---
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date }
 }, {
     timestamps: true
 });
 
-// Ocultar la contraseña en las respuestas JSON
 UsuarioSchema.methods.toJSON = function() {
-    const { __v, password, ...usuario } = this.toObject();
+    const { __v, password, resetPasswordToken, resetPasswordExpires, ...usuario } = this.toObject();
     return usuario;
 };
 
