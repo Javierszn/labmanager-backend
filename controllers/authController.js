@@ -121,10 +121,6 @@ const eliminarMiCuenta = async (req, res) => {
     }
 };
 
-// ==========================================
-// LÓGICA DE RECUPERACIÓN DE CONTRASEÑA
-// ==========================================
-
 const solicitarRecuperacion = async (req, res) => {
     try {
         const { correo } = req.body;
@@ -139,45 +135,37 @@ const solicitarRecuperacion = async (req, res) => {
         usuario.resetPasswordExpires = Date.now() + 1800000; 
         await usuario.save();
 
-        const resetLink = `https://labmanager-front-fjebuqz7y-javiergariv-2192s-projects.vercel.app/login?token=${token}`;
-
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
-            },
-            tls: { rejectUnauthorized: false }
+            }
         });
 
-        try {
-            // Intenta enviarlo
-            await transporter.verify();
-            const mailOptions = {
-                from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
-                to: usuario.correo,
-                subject: 'Recuperación de Contraseña - LabManager UASLP',
-                html: `<p>Hola. Haz clic aquí para recuperar: <a href="${resetLink}">Restablecer Contraseña</a></p>`
-            };
-            await transporter.sendMail(mailOptions);
-            res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
+        const mailOptions = {
+            from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
+            to: usuario.correo,
+            subject: 'Recuperación de Contraseña - LabManager UASLP',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                    <h2 style="color: #004a99; text-align: center;">LabManager UASLP</h2>
+                    <p style="font-size: 16px;">Hola <strong>${usuario.nombre}</strong>,</p>
+                    <p style="font-size: 16px;">Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón de abajo para crear una nueva:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="http://localhost:4200/login?token=${token}" style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Restablecer Contraseña</a>
+                    </div>
+                    <p style="font-size: 14px; color: #555;">Este enlace es seguro y expirará en 30 minutos.</p>
+                </div>
+            `
+        };
 
-        } catch (emailError) {
-            // SI RENDER LO BLOQUEA, SE ACTIVA EL MODO DEMO
-            console.log("❌ Render bloqueó el correo. Activando Modo Demo...");
-            
-            res.json({ 
-                ok: true, 
-                msg: 'Modo Demo (Render Gratuito): Abriendo ventana de recuperación...',
-                linkDemo: resetLink 
-            });
-        }
+        await transporter.sendMail(mailOptions);
+        res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ ok: false, msg: 'Hubo un error en el servidor' });
+        res.status(500).json({ ok: false, msg: 'Hubo un error al enviar el correo' });
     }
 };
 
