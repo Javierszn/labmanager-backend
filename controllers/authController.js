@@ -1,8 +1,8 @@
 const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); 
-const nodemailer = require('nodemailer'); 
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const generarJWT = (uid, rol) => {
     return jwt.sign({ uid, rol }, process.env.JWT_SECRET, { expiresIn: '24h' });
@@ -153,7 +153,7 @@ const solicitarRecuperacion = async (req, res) => {
         });
 
         try {
-            // Intentamos enviarlo
+            // Intenta enviarlo
             await transporter.verify();
             const mailOptions = {
                 from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
@@ -165,9 +165,8 @@ const solicitarRecuperacion = async (req, res) => {
             res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
         } catch (emailError) {
-            // SI RENDER LO BLOQUEA, ENRAMOS AQUÍ (MODO DEMO)
+            // SI RENDER LO BLOQUEA, SE ACTIVA EL MODO DEMO
             console.log("❌ Render bloqueó el correo. Activando Modo Demo...");
-            console.log("Link generado:", resetLink);
             
             res.json({ 
                 ok: true, 
@@ -179,6 +178,35 @@ const solicitarRecuperacion = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ ok: false, msg: 'Hubo un error en el servidor' });
+    }
+};
+
+const resetearPasswordOlvidada = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const usuario = await Usuario.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!usuario) {
+            return res.status(400).json({ ok: false, msg: 'El enlace de recuperación es inválido o ha expirado.' });
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        usuario.password = bcrypt.hashSync(password, salt);
+        
+        usuario.resetPasswordToken = undefined;
+        usuario.resetPasswordExpires = undefined;
+
+        await usuario.save();
+
+        res.json({ ok: true, msg: 'Tu contraseña ha sido restablecida exitosamente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al restablecer contraseña' });
     }
 };
 
