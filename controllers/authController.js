@@ -1,8 +1,8 @@
 const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const crypto = require('crypto'); 
+const nodemailer = require('nodemailer'); 
 
 const generarJWT = (uid, rol) => {
     return jwt.sign({ uid, rol }, process.env.JWT_SECRET, { expiresIn: '24h' });
@@ -15,7 +15,6 @@ const registrarUsuario = async (req, res) => {
         const existeUsuario = await Usuario.findOne({ correo });
         if (existeUsuario) return res.status(400).json({ ok: false, msg: 'El correo ya está registrado en el sistema' });
 
-        // Generar matrícula única de 6 dígitos
         const matriculaGenerada = Math.floor(100000 + Math.random() * 900000).toString();
 
         const usuario = new Usuario({ 
@@ -111,6 +110,21 @@ const actualizarEstado = async (req, res) => {
     }
 };
 
+const eliminarMiCuenta = async (req, res) => {
+    try {
+        const uid = req.userActive._id;
+        await Usuario.findByIdAndDelete(uid);
+        res.json({ ok: true, msg: 'Cuenta eliminada permanentemente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al intentar eliminar la cuenta.' });
+    }
+};
+
+// ==========================================
+// LÓGICA DE RECUPERACIÓN DE CONTRASEÑA
+// ==========================================
+
 const solicitarRecuperacion = async (req, res) => {
     try {
         const { correo } = req.body;
@@ -125,13 +139,19 @@ const solicitarRecuperacion = async (req, res) => {
         usuario.resetPasswordExpires = Date.now() + 1800000; 
         await usuario.save();
 
+        // --- CONFIGURACIÓN REFORZADA DE NODEMAILER ---
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true, 
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             }
         });
+
+        // Forzamos la conexión para atrapar el error si la contraseña de aplicación falla
+        await transporter.verify();
 
         const mailOptions = {
             from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
@@ -143,7 +163,7 @@ const solicitarRecuperacion = async (req, res) => {
                     <p style="font-size: 16px;">Hola <strong>${usuario.nombre}</strong>,</p>
                     <p style="font-size: 16px;">Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón de abajo para crear una nueva:</p>
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="http://localhost:4200/login?token=${token}" style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Restablecer Contraseña</a>
+                        <a href="https://labmanager-front-fjebuqz7y-javiergariv-2192s-projects.vercel.app/login?token=${token}" style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Restablecer Contraseña</a>
                     </div>
                     <p style="font-size: 14px; color: #555;">Este enlace es seguro y expirará en 30 minutos.</p>
                 </div>
@@ -154,7 +174,7 @@ const solicitarRecuperacion = async (req, res) => {
         res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
     } catch (error) {
-        console.error(error);
+        console.error("❌ Error de Nodemailer:", error);
         res.status(500).json({ ok: false, msg: 'Hubo un error al enviar el correo' });
     }
 };
@@ -185,17 +205,6 @@ const resetearPasswordOlvidada = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ ok: false, msg: 'Error al restablecer contraseña' });
-    }
-};
-
-const eliminarMiCuenta = async (req, res) => {
-    try {
-        const uid = req.userActive._id;
-        await Usuario.findByIdAndDelete(uid);
-        res.json({ ok: true, msg: 'Cuenta eliminada permanentemente.' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ ok: false, msg: 'Error al intentar eliminar la cuenta.' });
     }
 };
 
