@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { registrarUsuario, loginUsuario, obtenerAlumnos, actualizarEstado, obtenerMiPerfil, actualizarMiPerfil, actualizarPassword, solicitarRecuperacion, resetearPasswordOlvidada } = require('../controllers/authController');
+const { registrarUsuario, loginUsuario, obtenerAlumnos, actualizarEstado, obtenerMiPerfil, actualizarMiPerfil, actualizarPassword, solicitarRecuperacion, resetearPasswordOlvidada, eliminarMiCuenta } = require('../controllers/authController');
 const { validarJWT } = require('../middlewares/validarJWT');
 
 const router = Router();
@@ -7,7 +7,6 @@ const router = Router();
 router.post('/registro', registrarUsuario);
 router.post('/login', loginUsuario);
 
-// --- RUTAS PÚBLICAS PARA RECUPERACIÓN DE CONTRASEÑA ---
 router.post('/recuperar', solicitarRecuperacion);
 router.post('/reset-password/:token', resetearPasswordOlvidada);
 
@@ -15,6 +14,7 @@ router.post('/reset-password/:token', resetearPasswordOlvidada);
 router.get('/me', validarJWT, obtenerMiPerfil);
 router.put('/me', validarJWT, actualizarMiPerfil);             
 router.put('/me/password', validarJWT, actualizarPassword);    
+router.delete('/me', validarJWT, eliminarMiCuenta);
 
 // Rutas del admin
 router.get('/alumnos', validarJWT, obtenerAlumnos);

@@ -1,8 +1,8 @@
 const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // Para generar tokens aleatorios
-const nodemailer = require('nodemailer'); // Para enviar correos
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 const generarJWT = (uid, rol) => {
     return jwt.sign({ uid, rol }, process.env.JWT_SECRET, { expiresIn: '24h' });
@@ -10,11 +10,24 @@ const generarJWT = (uid, rol) => {
 
 const registrarUsuario = async (req, res) => {
     try {
-        const { nombre, correo, password, matricula } = req.body;
+        const { nombre, correo, password, telefono, institucion, facultad } = req.body;
+        
         const existeUsuario = await Usuario.findOne({ correo });
         if (existeUsuario) return res.status(400).json({ ok: false, msg: 'El correo ya está registrado en el sistema' });
 
-        const usuario = new Usuario({ nombre, correo, password, matricula });
+        // Generar matrícula única de 6 dígitos
+        const matriculaGenerada = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const usuario = new Usuario({ 
+            nombre, 
+            correo, 
+            password, 
+            matricula: matriculaGenerada, 
+            telefono: telefono || '',
+            institucion: institucion || 'UASLP',
+            facultad: facultad || 'Facultad de Ingeniería'
+        });
+        
         const salt = bcrypt.genSaltSync(10);
         usuario.password = bcrypt.hashSync(password, salt);
 
@@ -98,27 +111,20 @@ const actualizarEstado = async (req, res) => {
     }
 };
 
-// ==========================================
-// LÓGICA DE RECUPERACIÓN DE CONTRASEÑA
-// ==========================================
-
 const solicitarRecuperacion = async (req, res) => {
     try {
         const { correo } = req.body;
         const usuario = await Usuario.findOne({ correo });
 
         if (!usuario) {
-            // Por seguridad, no decimos si existe o no, solo damos un msj genérico
             return res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
         }
 
-        // 1. Generar Token Seguro
         const token = crypto.randomBytes(20).toString('hex');
         usuario.resetPasswordToken = token;
-        usuario.resetPasswordExpires = Date.now() + 1800000; // Expira en 30 minutos
+        usuario.resetPasswordExpires = Date.now() + 1800000; 
         await usuario.save();
 
-        // 2. Configurar Nodemailer
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -127,7 +133,6 @@ const solicitarRecuperacion = async (req, res) => {
             }
         });
 
-        // 3. Crear el correo
         const mailOptions = {
             from: `"LabManager Soporte" <${process.env.EMAIL_USER}>`,
             to: usuario.correo,
@@ -141,12 +146,10 @@ const solicitarRecuperacion = async (req, res) => {
                         <a href="http://localhost:4200/login?token=${token}" style="background-color: #004a99; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Restablecer Contraseña</a>
                     </div>
                     <p style="font-size: 14px; color: #555;">Este enlace es seguro y expirará en 30 minutos.</p>
-                    <p style="font-size: 14px; color: #555;">Si no solicitaste este cambio, simplemente ignora este correo.</p>
                 </div>
             `
         };
 
-        // 4. Enviar
         await transporter.sendMail(mailOptions);
         res.json({ ok: true, msg: 'Si el correo existe, recibirás un enlace de recuperación.' });
 
@@ -161,7 +164,6 @@ const resetearPasswordOlvidada = async (req, res) => {
         const { token } = req.params;
         const { password } = req.body;
 
-        // Buscar usuario con ese token y que no haya expirado
         const usuario = await Usuario.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: { $gt: Date.now() }
@@ -171,11 +173,9 @@ const resetearPasswordOlvidada = async (req, res) => {
             return res.status(400).json({ ok: false, msg: 'El enlace de recuperación es inválido o ha expirado.' });
         }
 
-        // Actualizar contraseña
         const salt = bcrypt.genSaltSync(10);
         usuario.password = bcrypt.hashSync(password, salt);
         
-        // Limpiar token
         usuario.resetPasswordToken = undefined;
         usuario.resetPasswordExpires = undefined;
 
@@ -188,8 +188,19 @@ const resetearPasswordOlvidada = async (req, res) => {
     }
 };
 
+const eliminarMiCuenta = async (req, res) => {
+    try {
+        const uid = req.userActive._id;
+        await Usuario.findByIdAndDelete(uid);
+        res.json({ ok: true, msg: 'Cuenta eliminada permanentemente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, msg: 'Error al intentar eliminar la cuenta.' });
+    }
+};
+
 module.exports = {
     registrarUsuario, loginUsuario, obtenerAlumnos, actualizarEstado, 
     obtenerMiPerfil, actualizarMiPerfil, actualizarPassword,
-    solicitarRecuperacion, resetearPasswordOlvidada
+    solicitarRecuperacion, resetearPasswordOlvidada, eliminarMiCuenta
 };
