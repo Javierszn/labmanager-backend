@@ -1,10 +1,10 @@
 const Prestamo = require('../models/Prestamo');
 const Equipo = require('../models/Equipo');
 
-// 1. Crear una solicitud de préstamo (Alumno)
+
 const crearPrestamo = async (req, res) => {
     try {
-        // --- CANDADO DE SEGURIDAD PARA INVITADOS ---
+
         if (!req.userActive) {
             return res.status(401).json({
                 ok: false,
@@ -12,7 +12,7 @@ const crearPrestamo = async (req, res) => {
             });
         }
 
-        // --- VALIDACIÓN DE SANCIONES ---
+        
         if (req.userActive.estado === 'Sancionado') {
             return res.status(403).json({
                 ok: false,
@@ -21,9 +21,9 @@ const crearPrestamo = async (req, res) => {
         }
 
         const { equipos, fechaSalida, fechaLimite } = req.body;
-        const usuarioId = req.userActive._id; // Ahora es 100% seguro leerlo
+        const usuarioId = req.userActive._id; 
 
-        // Validar stock disponible de cada equipo antes de confirmar
+        
         for (let item of equipos) {
             const equipoDB = await Equipo.findById(item.equipo);
             if (!equipoDB || equipoDB.stockDisponible < item.cantidad) {
@@ -34,7 +34,7 @@ const crearPrestamo = async (req, res) => {
             }
         }
 
-        // Crear el préstamo con estado por defecto "Pendiente"
+        
         const nuevoPrestamo = new Prestamo({
             usuario: usuarioId,
             equipos,
@@ -44,7 +44,7 @@ const crearPrestamo = async (req, res) => {
 
         const prestamoGuardado = await nuevoPrestamo.save();
 
-        // Restar temporalmente el stock disponible
+        
         for (let item of equipos) {
             await Equipo.findByIdAndUpdate(item.equipo, {
                 $inc: { stockDisponible: -item.cantidad }
@@ -62,7 +62,7 @@ const crearPrestamo = async (req, res) => {
     }
 };
 
-// 2. Obtener todos los préstamos (Para el panel del Laboratorista)
+
 const obtenerTodosPrestamos = async (req, res) => {
     try {
         const prestamos = await Prestamo.find()
@@ -75,7 +75,7 @@ const obtenerTodosPrestamos = async (req, res) => {
     }
 };
 
-// 3. Obtener préstamos de un alumno específico (Historial)
+
 const obtenerPrestamosUsuario = async (req, res) => {
     try {
         const prestamos = await Prestamo.find({ usuario: req.userActive._id })
@@ -87,7 +87,7 @@ const obtenerPrestamosUsuario = async (req, res) => {
     }
 };
 
-// 4. Actualizar estado del préstamo (Aprobar/Rechazar - Solo Admin)
+
 const actualizarEstadoPrestamo = async (req, res) => {
     try {
         const { estado } = req.body;
@@ -105,7 +105,7 @@ const actualizarEstadoPrestamo = async (req, res) => {
     }
 };
 
-// 5. Cancelar préstamo (Alumno)
+
 const cancelarPrestamo = async (req, res) => {
     try {
         const prestamoId = req.params.id;

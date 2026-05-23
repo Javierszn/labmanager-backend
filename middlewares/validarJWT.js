@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 
-// MIDDLEWARE 1: Verificar que el token sea válido
+
 const validarJWT = async (req, res, next) => {
-    // Leer el token de los headers (usaremos la cabecera 'x-token')
+    
     const token = req.header('x-token');
 
     if (!token) {
@@ -14,10 +14,10 @@ const validarJWT = async (req, res, next) => {
     }
 
     try {
-        // Verificar el payload del token con nuestra clave secreta
+        
         const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Buscamos en la BD el usuario al que pertenece ese ID
+        
         const usuario = await Usuario.findById(payload.uid);
 
         if (!usuario) {
@@ -27,7 +27,7 @@ const validarJWT = async (req, res, next) => {
             });
         }
 
-        // Añadimos esta información al objeto de la petición exactamente como en tus apuntes
+        
         req.userActive = usuario;
 
         next();
@@ -39,9 +39,9 @@ const validarJWT = async (req, res, next) => {
     }
 };
 
-// MIDDLEWARE 2: Verificar que el usuario tenga rol de Administrador
+
 const verifyAdminRole = (req, res, next) => {
-    // Verificamos si validarJWT ya colocó al usuario en la petición
+ 
     if (!req.userActive) {
         return res.status(401).json({
             ok: false,
@@ -49,7 +49,7 @@ const verifyAdminRole = (req, res, next) => {
         });
     }
 
-    // Validamos el rol para el control total de los módulos
+    
     if (req.userActive.rol !== 'admin') {
         return res.status(401).json({
             ok: false,

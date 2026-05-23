@@ -26,7 +26,7 @@ const EquipoSchema = new Schema({
     categoria: {
         type: Schema.Types.ObjectId,
         ref: 'Categoria',
-        required: false // <-- Desactivado temporalmente para no bloquearte al agregar
+        required: false 
     }
 }, {
     timestamps: true

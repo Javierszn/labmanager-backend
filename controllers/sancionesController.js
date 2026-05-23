@@ -1,7 +1,7 @@
 const Sancion = require('../models/Sancion');
 const Usuario = require('../models/Usuario');
 
-// Obtener todas las sanciones (para el panel del administrador)
+
 const obtenerSanciones = async (req, res) => {
     try {
         const sanciones = await Sancion.find().populate('usuario', 'nombre matricula correo');
@@ -11,7 +11,7 @@ const obtenerSanciones = async (req, res) => {
     }
 };
 
-// Obtener sanciones solo del usuario logueado (para su perfil)
+
 const obtenerMisSanciones = async (req, res) => {
     try {
         const sanciones = await Sancion.find({ usuario: req.userActive._id }).sort({ createdAt: -1 });
@@ -21,14 +21,14 @@ const obtenerMisSanciones = async (req, res) => {
     }
 };
 
-// Aplicar una nueva sanción a un alumno
+
 const crearSancion = async (req, res) => {
     try {
         const { usuario, motivo } = req.body;
         const nuevaSancion = new Sancion({ usuario, motivo });
         await nuevaSancion.save();
 
-        // Al mismo tiempo que creamos la sanción, bloqueamos al usuario
+        
         await Usuario.findByIdAndUpdate(usuario, { estado: 'Sancionado' });
 
         res.status(201).json({ ok: true, sancion: nuevaSancion });
@@ -37,13 +37,13 @@ const crearSancion = async (req, res) => {
     }
 };
 
-// Resolver (Quitar) una sanción
+
 const resolverSancion = async (req, res) => {
     try {
         const sancionId = req.params.id;
         const sancion = await Sancion.findByIdAndUpdate(sancionId, { estado: 'Resuelta' }, { new: true });
 
-        // Al resolver la sanción, le devolvemos el acceso al usuario
+        
         await Usuario.findByIdAndUpdate(sancion.usuario, { estado: 'Activo' });
 
         res.json({ ok: true, sancion });
@@ -52,7 +52,7 @@ const resolverSancion = async (req, res) => {
     }
 };
 
-// Eliminar el registro por completo
+
 const eliminarSancion = async (req, res) => {
     try {
         await Sancion.findByIdAndDelete(req.params.id);

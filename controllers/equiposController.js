@@ -1,9 +1,9 @@
 const Equipo = require('../models/Equipo');
 
-// Obtener todos los equipos (Público/Autenticado)
+
 const obtenerEquipos = async (req, res) => {
     try {
-        // Usamos populate para traer también la información de la categoría
+        
         const equipos = await Equipo.find().populate('categoria', 'nombre');
         res.json({
             ok: true,
@@ -14,7 +14,7 @@ const obtenerEquipos = async (req, res) => {
     }
 };
 
-// Crear un nuevo equipo (Solo Admin)
+
 const crearEquipo = async (req, res) => {
     const equipo = new Equipo(req.body);
     try {
@@ -28,7 +28,7 @@ const crearEquipo = async (req, res) => {
     }
 };
 
-// Actualizar un equipo (Solo Admin)
+
 const actualizarEquipo = async (req, res) => {
     const equipoId = req.params.id;
     try {
@@ -43,7 +43,7 @@ const actualizarEquipo = async (req, res) => {
     }
 };
 
-// Eliminar un equipo (Solo Admin)
+
 const eliminarEquipo = async (req, res) => {
     const equipoId = req.params.id;
     try {

@@ -11,7 +11,7 @@ const CategoriaSchema = new Schema({
         default: ''
     }
 }, {
-    timestamps: true // Crea automáticamente los campos createdAt y updatedAt
+    timestamps: true 
 });
 
 module.exports = model('Categoria', CategoriaSchema);

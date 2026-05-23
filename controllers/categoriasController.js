@@ -1,10 +1,10 @@
 const Categoria = require('../models/Categoria');
 
-// Obtener todas las categorías
+
 const obtenerCategorias = async (req, res) => {
     try {
         const categorias = await Categoria.find();
-        // Angular espera recibir este objeto exactamente así:
+        
         res.json({
             ok: true,
             categorias 
@@ -15,7 +15,7 @@ const obtenerCategorias = async (req, res) => {
     }
 };
 
-// Crear una categoría
+
 const crearCategoria = async (req, res) => {
     try {
         const nuevaCategoria = new Categoria(req.body);
@@ -31,7 +31,7 @@ const crearCategoria = async (req, res) => {
     }
 };
 
-// Actualizar una categoría
+
 const actualizarCategoria = async (req, res) => {
     try {
         const categoriaId = req.params.id;
@@ -52,7 +52,7 @@ const actualizarCategoria = async (req, res) => {
     }
 };
 
-// Eliminar una categoría
+
 const eliminarCategoria = async (req, res) => {
     try {
         const categoriaId = req.params.id;
